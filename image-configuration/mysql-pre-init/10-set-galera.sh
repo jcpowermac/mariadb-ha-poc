@@ -20,3 +20,5 @@ export PETS
 SAVE_ARGS=$@
 export SAVE_ARGS
 set -- "$@" "--wsrep_on=OFF"
+
+export $@
