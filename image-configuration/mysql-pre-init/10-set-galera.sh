@@ -17,3 +17,6 @@ done
 PETS=$(IFS=,; echo "${PETSARRAY[*]}")
 export PETS
 
+SAVE_ARGS=$@
+export SAVE_ARGS
+set -- "$@" "--wsrep_on=OFF"
