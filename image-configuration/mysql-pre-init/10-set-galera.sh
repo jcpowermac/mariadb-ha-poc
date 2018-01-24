@@ -1,5 +1,9 @@
 #!/bin/bash
 
+
+cp -R /etc/opt/rh/rh-mariadb102/my.* /etc/
+
+
 NAMESPACE=`cat /run/secrets/kubernetes.io/serviceaccount/namespace`
 
 SRVSTRING=`host -t SRV ${NAMESPACE}`
@@ -17,7 +21,7 @@ done
 PETS=$(IFS=,; echo "${PETSARRAY[*]}")
 export PETS
 
-SAVE_ARGS=$@
-export SAVE_ARGS
-set -- "$@" "--wsrep_on=OFF"
+#SAVE_ARGS=$@
+#export SAVE_ARGS
+#set -- "$@" "--wsrep_on=OFF"
 
