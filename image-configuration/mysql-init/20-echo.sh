@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ! -z "$INIT_GALERA" ];
+if [ "$INIT_GALERA" = true ];
     then
         echo "Shutting down mariadb"
         shutdown_local_mysql
