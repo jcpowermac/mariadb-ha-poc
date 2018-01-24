@@ -19,7 +19,11 @@ do
     PETSARRAY+=("${temp:0:-1}")
 done
 
-PETS=$(IFS=,; echo "${PETSARRAY[*]}")
+if [ "${#PETSARRAY[@]}" = 1 ]; then
+    PETS=""
+else
+    PETS=$(IFS=,; echo "${PETSARRAY[*]}")
+fi
 export PETS
 
 #SAVE_ARGS=$@
