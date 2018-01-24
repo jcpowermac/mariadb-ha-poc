@@ -66,7 +66,7 @@ objects:
       spec:
         initContainers:
         - name: init-galera
-          image: 'docker-registry.default.svc:5000/galera/custom:latest'
+          image: 'docker-registry.default.svc:5000/mariadb/custom:latest'
           command:
           - "--wsrep_on=OFF"
           env:
@@ -78,15 +78,13 @@ objects:
                 apiVersion: v1
                 fieldPath: metadata.namespace
           volumeMounts:
-          - name: my_cnf
-            mountPath: "/etc/my.cnf"
-          - name: my_cnf_d
+          - name: mycnfd
             mountPath: "/etc/my.cnf.d"
           - name: data
             mountPath: "/var/lib/mysql/data"
         containers:
         - name: "${GALERA_PETSET_NAME}"
-          image: 'docker-registry.default.svc:5000/galera/custom:latest'
+          image: 'docker-registry.default.svc:5000/mariadb/custom:latest'
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 3306
@@ -123,16 +121,12 @@ objects:
             - name: GALERA_PETSET_NAME
               value: "${GALERA_PETSET_NAME}"
           volumeMounts:
-          - name: my_cnf_d
+          - name: mycnfd
             mountPath: "/etc/my.cnf.d"
-          - name: my_cnf
-            mountPath: "/etc/my.cnf"
           - name: data
             mountPath: "/var/lib/mysql/data"
         volumes:
         - name: data
           emptyDir: {}
-        - name: my_cnf_d
-          emptyDir: {}
-        - name: my_cnf
+        - name: mycnfd
           emptyDir: {}

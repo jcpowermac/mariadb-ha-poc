@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-cp -R /etc/opt/rh/rh-mariadb102/my.* /etc/
+#cp -R /etc/opt/rh/rh-mariadb102/my.* /etc/
 
 
 NAMESPACE=`cat /run/secrets/kubernetes.io/serviceaccount/namespace`
