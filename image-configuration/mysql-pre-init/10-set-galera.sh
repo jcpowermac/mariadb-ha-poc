@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+set -x
 #cp -R /etc/opt/rh/rh-mariadb102/my.* /etc/
 
 
