@@ -6,8 +6,8 @@ set -x
 
 NAMESPACE=`cat /run/secrets/kubernetes.io/serviceaccount/namespace`
 
-#SRVSTRING=`host -t SRV galera`
-SRVSTRING=`host -t SRV ${NAMESPACE}`
+SRVSTRING=`host -t SRV galera`
+#SRVSTRING=`host -t SRV ${NAMESPACE}`
 PETSARRAY=()
 
 readarray -t SRV <<< "$SRVSTRING"
