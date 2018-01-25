@@ -59,13 +59,13 @@ objects:
         [{
         "from": {
           "kind": "ImageStreamTag",
-          "name": "custom:latest"
+          "name": "${GALERA_STATEFULSET_NAME}:latest"
           },
           "fieldPath": "spec.template.spec.initContainers[?(@.name==\"init-${GALERA_STATEFULSET_NAME}\")].image"
         },{
         "from": {
           "kind": "ImageStreamTag",
-          "name": "custom:latest"
+          "name": "${GALERA_STATEFULSET_NAME}:latest"
           },
           "fieldPath": "spec.template.spec.containers[?(@.name==\"${GALERA_STATEFULSET_NAME}\")].image"
         }]
@@ -160,12 +160,12 @@ objects:
 - apiVersion: v1
   kind: BuildConfig
   metadata:
-    name: custom
+    name: "${GALERA_STATEFULSET_NAME}"
   spec:
     output:
       to:
         kind: ImageStreamTag
-        name: custom:latest
+        name: "${GALERA_STATEFULSET_NAME}:latest"
     source:
       contextDir: image-configuration
       git:
@@ -216,7 +216,7 @@ objects:
 - apiVersion: v1
   kind: ImageStream
   metadata:
-    name: custom
+    name: "${GALERA_STATEFULSET_NAME}"
 
 - apiVersion: v1
   kind: ImageStream
