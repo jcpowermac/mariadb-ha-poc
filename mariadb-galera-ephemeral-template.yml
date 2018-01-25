@@ -68,6 +68,7 @@ objects:
         - name: init-galera
           image: 'docker-registry.default.svc:5000/mariadb/custom:latest'
           command:
+          - "run-mysqld"
           - "--wsrep_on=OFF"
           env:
           - name: INIT_GALERA
@@ -77,6 +78,16 @@ objects:
               fieldRef:
                 apiVersion: v1
                 fieldPath: metadata.namespace
+          - name: MYSQL_USER
+            value: "${MYSQL_USER}"
+          - name: MYSQL_PASSWORD
+            value: "${MYSQL_PASSWORD}"
+          - name: MYSQL_DATABASE
+            value: "${MYSQL_DATABASE}"
+          - name: MYSQL_ROOT_PASSWORD
+            value: "${MYSQL_ROOT_PASSWORD}"
+          - name: GALERA_PETSET_NAME
+            value: "${GALERA_PETSET_NAME}"
           volumeMounts:
           - name: mycnfd
             mountPath: "/etc/my.cnf.d"
