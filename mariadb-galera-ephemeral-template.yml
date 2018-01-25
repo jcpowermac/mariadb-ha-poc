@@ -11,9 +11,9 @@ parameters:
 - name: MYSQL_SERVICE_NAME
   description: Service name for the MariaDB service
   value: galera
-- name: GALERA_PETSET_NAME
-  description: PetSet name
-  value: mysql
+- name: GALERA_STATEFULSET_NAME
+  description: Statefulset name
+  value: mariadb-galera
 - name: NUMBER_OF_GALERA_MEMBERS
   description: Number of Galera Nodes
   value: "3"
@@ -41,32 +41,47 @@ objects:
       service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
     name: "${MYSQL_SERVICE_NAME}"
     labels:
-      app: "${GALERA_PETSET_NAME}"
+      app: "${GALERA_STATEFULSET_NAME}"
   spec:
     ports:
     - port: 3306
-      name: "${GALERA_PETSET_NAME}"
+      name: "${GALERA_STATEFULSET_NAME}"
     clusterIP: None
     selector:
-      app: "${GALERA_PETSET_NAME}"
+      app: "${GALERA_STATEFULSET_NAME}"
 
 - apiVersion: apps/v1beta1
   kind: StatefulSet
   metadata:
-    name: "${GALERA_PETSET_NAME}"
+    name: "${GALERA_STATEFULSET_NAME}"
+    annotations:
+      image.openshift.io/triggers: |
+        [{
+        "from": {
+          "kind": "ImageStreamTag",
+          "name": "custom:latest"
+          },
+          "fieldPath": "spec.template.spec.initContainers[?(@.name==\"init-${GALERA_STATEFULSET_NAME}\")].image"
+        },{
+        "from": {
+          "kind": "ImageStreamTag",
+          "name": "custom:latest"
+          },
+          "fieldPath": "spec.template.spec.containers[?(@.name==\"${GALERA_STATEFULSET_NAME}\")].image"
+        }]
   spec:
     serviceName: "${MYSQL_SERVICE_NAME}"
     replicas: "${NUMBER_OF_GALERA_MEMBERS}"
     template:
       metadata:
         labels:
-          app: "${GALERA_PETSET_NAME}"
+          app: "${GALERA_STATEFULSET_NAME}"
         annotations:
           pod.alpha.kubernetes.io/initialized: "true"
       spec:
         initContainers:
-        - name: init-galera
-          image: 'docker-registry.default.svc:5000/mariadb/custom:latest'
+        - name: "init-${GALERA_STATEFULSET_NAME}"
+          image: " "
           command:
           - "run-mysqld"
           - "--wsrep_on=OFF"
@@ -86,16 +101,16 @@ objects:
             value: "${MYSQL_DATABASE}"
           - name: MYSQL_ROOT_PASSWORD
             value: "${MYSQL_ROOT_PASSWORD}"
-          - name: GALERA_PETSET_NAME
-            value: "${GALERA_PETSET_NAME}"
+          - name: GALERA_STATEFULSET_NAME
+            value: "${GALERA_STATEFULSET_NAME}"
           volumeMounts:
           - name: mycnfd
             mountPath: "/etc/my.cnf.d"
           - name: data
             mountPath: "/var/lib/mysql/data"
         containers:
-        - name: "${GALERA_PETSET_NAME}"
-          image: 'docker-registry.default.svc:5000/mariadb/custom:latest'
+        - name: "${GALERA_STATEFULSET_NAME}"
+          image: " "
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 3306
@@ -129,8 +144,8 @@ objects:
               value: "${MYSQL_DATABASE}"
             - name: MYSQL_ROOT_PASSWORD
               value: "${MYSQL_ROOT_PASSWORD}"
-            - name: GALERA_PETSET_NAME
-              value: "${GALERA_PETSET_NAME}"
+            - name: GALERA_STATEFULSET_NAME
+              value: "${GALERA_STATEFULSET_NAME}"
           volumeMounts:
           - name: mycnfd
             mountPath: "/etc/my.cnf.d"
@@ -141,3 +156,80 @@ objects:
           emptyDir: {}
         - name: mycnfd
           emptyDir: {}
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: custom
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: custom:latest
+    source:
+      contextDir: image-configuration
+      git:
+        uri: https://github.com/jcpowermac/mariadb-ha-poc
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: galera-102-centos7:latest
+      type: Source
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: galera-102-centos7
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: galera-102-centos7:latest
+    source:
+      dockerfile: |
+        FROM docker.io/centos/mariadb-102-centos7
+        USER root
+
+        RUN yum clean all && \
+            INSTALL_PKGS="rh-mariadb102-galera which" && \
+            yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+            rpm -V $INSTALL_PKGS && \
+            yum clean all
+        USER 27
+        EXPOSE 4567 4568 4444
+      type: Dockerfile
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: mariadb-102-centos7:latest
+      type: Docker
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: custom
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: galera-102-centos7
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: mariadb-102-centos7
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: docker.io/centos/mariadb-102-centos7:latest
+      name: latest
