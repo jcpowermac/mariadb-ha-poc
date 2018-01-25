@@ -13,7 +13,7 @@ Start a container to execute `mysql` commands.  NOTE: when using `oc cluster up`
 url with IP address.
 
 ```
-oc run galera --restart=Never --image=docker-registry.default.svc:5000/galera/mariadb-galera --attach=true -i -- bash
+oc run galera --restart=Never --image=docker-registry.default.svc:5000/galera/mariadb-galera --attach=true -it -- bash
 
 mysql -h galera.galera.svc -u root -p
 ```
