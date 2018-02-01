@@ -1,0 +1,235 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: mariadb-galera-ephemeral
+  annotations:
+    description: MariaDB Galera cluster ephemeral
+    iconClass: icon-mariadb
+    tags: database,mysql,replication,mariadb,galera
+parameters:
+- name: MYSQL_SERVICE_NAME
+  description: Service name for the MariaDB service
+  value: galera
+- name: GALERA_STATEFULSET_NAME
+  description: Statefulset name
+  value: mariadb-galera
+- name: NUMBER_OF_GALERA_MEMBERS
+  description: Number of Galera Nodes
+  value: "3"
+  required: true
+- name: MYSQL_USER
+  description: The username that clients will use to connect to the server
+  value: user
+- name: MYSQL_PASSWORD
+  description: The password for the MYSQL_USER
+  generate: expression
+  from: "[a-zA-Z0-9]{12}"
+- name: MYSQL_DATABASE
+  description: The name of the database that will be created and replicated
+  value: userdb
+- name: MYSQL_ROOT_PASSWORD
+  description: The password for the root user
+  generate: expression
+  from: "[a-zA-Z0-9]{12}"
+
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+    name: "${MYSQL_SERVICE_NAME}"
+    labels:
+      app: "${GALERA_STATEFULSET_NAME}"
+  spec:
+    ports:
+    - port: 3306
+      name: "${GALERA_STATEFULSET_NAME}"
+    clusterIP: None
+    selector:
+      app: "${GALERA_STATEFULSET_NAME}"
+
+- apiVersion: apps/v1beta1
+  kind: StatefulSet
+  metadata:
+    name: "${GALERA_STATEFULSET_NAME}"
+    annotations:
+      image.openshift.io/triggers: |
+        [{
+        "from": {
+          "kind": "ImageStreamTag",
+          "name": "${GALERA_STATEFULSET_NAME}:latest"
+          },
+          "fieldPath": "spec.template.spec.initContainers[?(@.name==\"init-${GALERA_STATEFULSET_NAME}\")].image"
+        },{
+        "from": {
+          "kind": "ImageStreamTag",
+          "name": "${GALERA_STATEFULSET_NAME}:latest"
+          },
+          "fieldPath": "spec.template.spec.containers[?(@.name==\"${GALERA_STATEFULSET_NAME}\")].image"
+        }]
+  spec:
+    serviceName: "${MYSQL_SERVICE_NAME}"
+    replicas: "${NUMBER_OF_GALERA_MEMBERS}"
+    template:
+      metadata:
+        labels:
+          app: "${GALERA_STATEFULSET_NAME}"
+        annotations:
+          pod.alpha.kubernetes.io/initialized: "true"
+      spec:
+        initContainers:
+        - name: "init-${GALERA_STATEFULSET_NAME}"
+          image: "docker-registry.default.svc:5000/galera/${GALERA_STATEFULSET_NAME}:latest"
+          command:
+          - "run-mysqld"
+          - "--wsrep_on=OFF"
+          env:
+          - name: INIT_GALERA
+            value: "true"
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: MYSQL_USER
+            value: "${MYSQL_USER}"
+          - name: MYSQL_PASSWORD
+            value: "${MYSQL_PASSWORD}"
+          - name: MYSQL_DATABASE
+            value: "${MYSQL_DATABASE}"
+          - name: MYSQL_ROOT_PASSWORD
+            value: "${MYSQL_ROOT_PASSWORD}"
+          - name: GALERA_STATEFULSET_NAME
+            value: "${GALERA_STATEFULSET_NAME}"
+          volumeMounts:
+          - name: mycnfd
+            mountPath: "/etc/my.cnf.d"
+          - name: data
+            mountPath: "/var/lib/mysql/data"
+        containers:
+        - name: "${GALERA_STATEFULSET_NAME}"
+          image: " "
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 3306
+            name: mysql
+          - containerPort: 4444
+            name: sst
+          - containerPort: 4567
+            name: replication
+          - containerPort: 4568
+            name: ist
+          readinessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-i"
+              - "-c"
+              - "MYSQL_PWD=\"$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE -e 'SELECT 1'"
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: MYSQL_USER
+              value: "${MYSQL_USER}"
+            - name: MYSQL_PASSWORD
+              value: "${MYSQL_PASSWORD}"
+            - name: MYSQL_DATABASE
+              value: "${MYSQL_DATABASE}"
+            - name: MYSQL_ROOT_PASSWORD
+              value: "${MYSQL_ROOT_PASSWORD}"
+            - name: GALERA_STATEFULSET_NAME
+              value: "${GALERA_STATEFULSET_NAME}"
+          volumeMounts:
+          - name: mycnfd
+            mountPath: "/etc/my.cnf.d"
+          - name: data
+            mountPath: "/var/lib/mysql/data"
+        volumes:
+        - name: data
+          emptyDir: {}
+        - name: mycnfd
+          emptyDir: {}
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: "${GALERA_STATEFULSET_NAME}"
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${GALERA_STATEFULSET_NAME}:latest"
+    source:
+      contextDir: image-configuration
+      git:
+        uri: https://github.com/jcpowermac/mariadb-ha-poc
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: galera-102-centos7:latest
+      type: Source
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: galera-102-centos7
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: galera-102-centos7:latest
+    source:
+      dockerfile: |
+        FROM docker.io/centos/mariadb-102-centos7
+        USER root
+
+        RUN yum clean all && \
+            INSTALL_PKGS="rh-mariadb102-galera which" && \
+            yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+            rpm -V $INSTALL_PKGS && \
+            yum clean all
+        USER 27
+        EXPOSE 4567 4568 4444
+      type: Dockerfile
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: mariadb-102-centos7:latest
+      type: Docker
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: "${GALERA_STATEFULSET_NAME}"
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: galera-102-centos7
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: mariadb-102-centos7
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: docker.io/centos/mariadb-102-centos7:latest
+      name: latest
