@@ -1,32 +1,25 @@
 #!/bin/bash
 
 set -x
-#cp -R /etc/opt/rh/rh-mariadb102/my.* /etc/
 
-
+# Get the namespace where these pods are running
 NAMESPACE=`cat /run/secrets/kubernetes.io/serviceaccount/namespace`
 
-SRVSTRING=`host -t SRV galera`
-#SRVSTRING=`host -t SRV ${NAMESPACE}`
-PETSARRAY=()
+# Retrieve the SRV records from DNS
+SRVSTRING=`host -t SRV ${NAMESPACE}`
+FQDN=()
 
 readarray -t SRV <<< "$SRVSTRING"
 
-for pod in "${SRV[@]}"
+for entry in "${SRV[@]}"
 do
-    temp=$(echo $pod | awk '{print $8}')
-    echo $temp
-    PETSARRAY+=("${temp:0:-1}")
+    temp=$(echo $entry | awk '{print $8}')
+    FQDN+=("${temp:0:-1}")
 done
 
-if [ "${#PETSARRAY[@]}" = 1 ]; then
-    PETS=""
+if [ "${#FQDN[@]}" = 1 ]; then
+    NODES=""
 else
-    PETS=$(IFS=,; echo "${PETSARRAY[*]}")
+    NODES=$(IFS=,; echo "${FQDN[*]}")
 fi
-export PETS
-
-#SAVE_ARGS=$@
-#export SAVE_ARGS
-#set -- "$@" "--wsrep_on=OFF"
-
+export NODES

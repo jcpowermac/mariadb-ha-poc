@@ -44,7 +44,7 @@ wsrep_provider="/opt/rh/rh-mariadb102/root/usr/lib64/galera/libgalera_smm.so"
 wsrep_cluster_name=galera
 
 # Group communication system handle
-wsrep_cluster_address=gcomm://${PETS}
+wsrep_cluster_address=gcomm://${NODES}
 
 # Human-readable node name (non-unique). Hostname by default.
 #wsrep_node_name=
