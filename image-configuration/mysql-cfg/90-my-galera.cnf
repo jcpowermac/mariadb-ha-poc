@@ -35,7 +35,7 @@ wsrep_on=1
 
 # Full path to wsrep provider library or 'none'
 # /opt/rh/rh-mariadb101/root/usr/lib64/galera/libgalera_smm.so
-wsrep_provider="/opt/rh/rh-mariadb102/root/usr/lib64/galera/libgalera_smm.so"
+wsrep_provider=non
 
 # Provider specific configuration options
 #wsrep_provider_options=
@@ -105,7 +105,7 @@ wsrep_notify_cmd=
 ##
 
 # State Snapshot Transfer method
-wsrep_sst_method=rsync
+wsrep_sst_method=xtrabackup-v2
 
 # Address which donor should send State Snapshot to.
 # Should be the address of THIS node. DON'T SET IT TO DONOR ADDRESS!!!
