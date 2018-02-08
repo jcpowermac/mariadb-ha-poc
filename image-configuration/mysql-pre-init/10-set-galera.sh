@@ -3,7 +3,10 @@
 set -x
 
 # Get the namespace where these pods are running
-NAMESPACE=`cat /run/secrets/kubernetes.io/serviceaccount/namespace`
+#NAMESPACE=`cat /run/secrets/kubernetes.io/serviceaccount/namespace`
+
+# THIS IS WRONG ***
+NAMESPACE="rhscl-mariadb"
 
 # Retrieve the SRV records from DNS
 SRVSTRING=`host -t SRV ${NAMESPACE}`
