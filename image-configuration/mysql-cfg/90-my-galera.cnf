@@ -35,7 +35,7 @@ wsrep_on=1
 
 # Full path to wsrep provider library or 'none'
 # /opt/rh/rh-mariadb101/root/usr/lib64/galera/libgalera_smm.so
-wsrep_provider=none
+wsrep_provider=/opt/rh/rh-mariadb102/root/usr/lib64/galera/libgalera_smm.so
 
 # Provider specific configuration options
 #wsrep_provider_options=
