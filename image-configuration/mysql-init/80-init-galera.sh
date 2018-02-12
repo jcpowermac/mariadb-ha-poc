@@ -7,3 +7,8 @@ if [ -v INIT_GALERA ];
         # should be done and we don't want the script to continue
         exit 0
 fi
+
+WSREP_ON=1
+export WSREP_ON
+
+process_extending_config_files ${APP_DATA}/mysql-cfg/ ${CONTAINER_SCRIPTS_PATH}/cnf/

@@ -7,6 +7,7 @@ set -x
 
 # THIS IS WRONG ***
 NAMESPACE="rhscl-mariadb"
+WSREP_ON=0
 
 # Retrieve the SRV records from DNS
 SRVSTRING=`host -t SRV ${NAMESPACE}`
@@ -25,4 +26,7 @@ if [ "${#FQDN[@]}" = 1 ]; then
 else
     NODES=$(IFS=,; echo "${FQDN[*]}")
 fi
+
+
 export NODES
+export WSREP_ON

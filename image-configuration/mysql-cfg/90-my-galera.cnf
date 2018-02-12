@@ -31,7 +31,7 @@ bind-address=0.0.0.0
 ##
 
 # Enable wsrep
-wsrep_on=1
+wsrep_on=${WSREP_ON}
 
 # Full path to wsrep provider library or 'none'
 # /opt/rh/rh-mariadb101/root/usr/lib64/galera/libgalera_smm.so
